@@ -3,7 +3,7 @@
 Note: this course is code-agnostic, **but will presume R**. If you use any other
 coding environment, make sure that it is fully reproducible (for instance, a 
 Jupyter notebook). The `.gitignore` file in the repository is specifically for
-R. You may with to modify this file if you are using Python, Julia, or any other
+R. You may wish to modify this file if you are using Python, Julia, or any other
 such language.
 
 ### Deadline and submission
@@ -197,9 +197,9 @@ using Zoom to record your presentation; however, you can use whatever platform
 works best for you. Below are a few resources to help you record video 
 presentations:
 
-[Recording presentations in Zoom](https://kb.siue.edu/61721)
-[Apple Quicktime for screen recording](https://support.apple.com/en-gb/guide/quicktime-player/qtp97b08e666/mac)
-[Windows 10 built-in screen recording functionality](https://www.youtube.com/watch?v=OfPbr1mRDuo)
+- [Recording presentations in Zoom](https://kb.siue.edu/61721)
+- [Apple Quicktime for screen recording](https://support.apple.com/en-gb/guide/quicktime-player/qtp97b08e666/mac)
+- [Windows 10 built-in screen recording functionality](https://www.youtube.com/watch?v=OfPbr1mRDuo)
 You will post the presentation video in Warpwire, which is accessible from the 
 the course Sakai site (bottom of the left-hand tool bar). To post your video on 
 Warpwire:
