@@ -1,0 +1,16 @@
+---
+title: "Case Study 0"
+author: Austin Kao
+date: 1/31/2021
+output: pdf_document
+---
+
+Introduction
+
+Methodology
+
+Results
+
+Discussion
+
+Appendix
