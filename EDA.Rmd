@@ -58,7 +58,7 @@ filtered_1719$RACE <- fct_relevel(filtered_1719$RACE, "WHITE", "ASIAN/PAC.ISL", 
 filtered_1719 <- filtered_1719 %>%
   mutate(ARRESTED = if_else(SUSPECT_ARRESTED_FLAG == "Y", 1, 0))
 filtered_1719 <- filtered_1719 %>%
-  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "ROBBERY" | SUSPECTED_CRIME_DESCRIPTION == "ASSAULT" | SUSPECTED_CRIME_DESCRIPTION == "RAPE" | SUSPECTED_CRIME_DESCRIPTION == "MURDER" | SUSPECTED_CRIME_DESCRIPTION == "TERRORISM" | SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "RECKLESS ENDANGERMENT" | SUSPECTED_CRIME_DESCRIPTION == "MENACING", 1, 0))
+  mutate(SUSPECTED_VIOLENCE = if_else(SUSPECTED_CRIME_DESCRIPTION == "ROBBERY" | SUSPECTED_CRIME_DESCRIPTION == "ASSAULT" | SUSPECTED_CRIME_DESCRIPTION == "RAPE" | SUSPECTED_CRIME_DESCRIPTION == "MURDER" | SUSPECTED_CRIME_DESCRIPTION == "TERRORISM" | SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "RECKLESS ENDANGERMENT" | SUSPECTED_CRIME_DESCRIPTION == "MENACING", 1, 0))
 filtered_1719 <- filtered_1719 %>%
   mutate(SUSPECT_DRUG_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF MARIHUANA" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF CONTROLLED SUBSTANCE" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL SALE OF MARIHUANA" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL SALE OF CONTROLLED SUBSTANCE", 1, 0))
 filtered_1719 <- filtered_1719 %>%
@@ -69,16 +69,19 @@ filtered_1719 <- filtered_1719 %>%
 
 ```{r}
 filtered_1719 <- filtered_1719 %>%
-  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "AUTO STRIPPIG" | SUSPECTED_CRIME_DESCRIPTION == "MAKING GRAFFITI", "VANDALISM", SUSPECTED_CRIME_CATEGORY))
+  filter(!SUSPECT_HEIGHT == "(null)" & !SUSPECT_HEIGHT == "#NULL!")
+filtered_1719$SUSPECT_HEIGHT <- as.numeric(filtered_1719$SUSPECT_HEIGHT)
 filtered_1719 <- filtered_1719 %>%
-  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "CPSP" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF MARIHUANA" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF CONTROLLED SUBSTANCE" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF FORGED INSTRUMENT" | SUSPECTED_CRIME_DESCRIPTION == "CPW", "CRIMINAL POSSESSION", SUSPECTED_CRIME_CATEGORY))
+  filter(!SUSPECT_HEIGHT == 60.11)
 filtered_1719 <- filtered_1719 %>%
-  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL SALE OF MARIHUANA" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL SALE OF CONTROLLED SUBSTANCE", "CRIMINAL SALE", SUSPECTED_CRIME_CATEGORY))
+  filter(!SUSPECT_WEIGHT == "(null)")
+filtered_1719$SUSPECT_WEIGHT <- as.numeric(filtered_1719$SUSPECT_WEIGHT)
 filtered_1719 <- filtered_1719 %>%
-  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "MISD", "MISDEMEANOR", SUSPECTED_CRIME_CATEGORY))
+  filter(!SUSPECT_WEIGHT == 0 & !SUSPECT_WEIGHT == 1)
 filtered_1719 <- filtered_1719 %>%
-  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "PROSTITUTION" | SUSPECTED_CRIME_DESCRIPTION == "RAPE", "SEXUAL CRIME", SUSPECTED_CRIME_CATEGORY))
+  mutate(WEAPON_FOUND = if_else(WEAPON_FOUND_FLAG == "(", "N", WEAPON_FOUND_FLAG))
 ```
+
 
 
 ```{r}
@@ -87,7 +90,7 @@ ggplot(data = filtered_1719, aes(x = RACE)) +
   geom_bar() +
   labs(x = "Race of Suspect", y = 
          "Frequency", title = "Race of Suspects in SQF Events")
-ggplot(data = filtered_1719, aes(x = SUSPECTED_CRIME_CATEGORY)) +
+ggplot(data = filtered_1719, aes(x = SUSPECTED_VIOLENCE)) +
   geom_bar() +
   labs(title = "Number Arrested in SQF Events")
 ggplot(data = filtered_1719, aes(x = ARRESTED)) +
@@ -95,7 +98,19 @@ ggplot(data = filtered_1719, aes(x = ARRESTED)) +
   labs(title = "Number Arrested in SQF Events")
 barplot(popSums[3:6], main = "Population Totals by Race")
 mosaicplot(filtered_1719$RACE ~ filtered_1719$PHYSICAL_FORCE_USED, data = filtered_1719)
+ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_HEIGHT")) +
+  geom_boxplot() +
+  labs(title = "Effect of Height on Suspected Violent Crime")
+ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_WEIGHT")) +
+  geom_boxplot() +
+  labs(title = "Effect of Weight on Suspected Violent Crime")
 ```
+
+```{r}
+mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$WEAPON_FOUND, data = filtered_1719)
+mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$SUSPECT_SEX, data = filtered_1719)
+```
+
 
 ```{r}
 sum(filtered_1719$SUSPECTED_CRIME_CATEGORY == 1 & filtered_1719$RACE == "BLACK")/sum(filtered_1719$RACE == "BLACK")
@@ -108,9 +123,20 @@ sum(filtered_1719$STOP_DURATION_MINUTES)/sum(filtered_1719$RACE == "WHITE")
 sum(filtered_1719$STOP_DURATION_MINUTES)/ sum(filtered_1719$RACE == "BLACK")
 ```
 
+```{r}
+ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_HEIGHT")) +
+  geom_boxplot() +
+  labs(title = "Effect of Height on Suspected Violent Crime")
+ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_HEIGHT")) +
+  geom_boxplot() +
+  labs(title = "Effect of Height on Suspected Violent Crime")
+```
+
+
+
 
 ```{r}
-arrest_model <- glm(SUSPECTED_CRIME_CATEGORY ~ RACE + FRISKED_FLAG + SEARCHED_FLAG + SUSPECT_ARRESTED_FLAG, data = filtered_1719)
+arrest_model <- glm(SUSPECTED_VIOLENCE ~ RACE + SUSPECT_HEIGHT + SUSPECT_WEIGHT + WEAPON_FOUND_FLAG, data = filtered_1719)
 tidy(arrest_model)
 ```
 
