@@ -19,15 +19,30 @@ data18 = read.csv("sqf-2018.csv")
 data19 = read.csv("sqf-2019.csv")
 data18 <- data18 %>% rename(STOP_FRISK_TIME = Stop.Frisk.Time)
 data19 <- data19 %>% rename(STOP_FRISK_ID = STOP_ID_ANONY)
+pops <- read.csv("precinct_pop.csv")
+pops <- pops %>% rename(WHITE = white)
+pops <- pops %>% rename(BLACK = black)
+pops <- pops %>% rename(OTHER = other)
+pops <- pops %>% rename(HISPANIC = hisp_latino)
+pops <- pops %>% 
+  mutate(PROP_BLACK = BLACK / total_pop)
+pops <- pops %>% 
+  mutate(PROP_HISP = HISPANIC / total_pop)
+popSums <- colSums(pops)
 ```
 
 ```{r}
+# Create a combined data set
 combined_1718 <- rbind(data17, data18)
 combined_1718$SUPERVISING_ACTION_CORRESPONDING_ACTIVITY_LOG_ENTRY_REVIEWED <- NULL
 combined_1718$STOP_LOCATION_PREMISES_NAME <- NULL
 data19$ASK_FOR_CONSENT_FLG <- NULL
 data19$CONSENT_GIVEN_FLG <- NULL
 combined_1719 <- rbind(combined_1718, data19)
+```
+
+```{r}
+# Filter out missing race data, adjust data in certain columns
 filtered_1719 <- combined_1719 %>%
   filter(!SUSPECT_RACE_DESCRIPTION == "(null)" & !SUSPECT_RACE_DESCRIPTION == "MALE")
 filtered_1719 <- filtered_1719 %>%
@@ -35,12 +50,41 @@ filtered_1719 <- filtered_1719 %>%
                         | SUSPECT_RACE_DESCRIPTION == "AMERICAN INDIAN/ALASKAN N", "AMER IND", SUSPECT_RACE_DESCRIPTION))
 filtered_1719 <- filtered_1719 %>%
   mutate(RACE = if_else(RACE == "ASIAN / PACIFIC ISLANDER", "ASIAN/PAC.ISL", RACE))
+filtered_1719 <- filtered_1719 %>%
+  mutate(ARRESTED = if_else(SUSPECT_ARRESTED_FLAG == "Y", 1, 0))
 ```
+
+```{r}
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "ROBBERY" | SUSPECTED_CRIME_DESCRIPTION == "BURGLARY" | SUSPECTED_CRIME_DESCRIPTION == "GRAND LARCENY" | SUSPECTED_CRIME_DESCRIPTION == "GRAND LARCENY AUTO" | SUSPECTED_CRIME_DESCRIPTION == "PETIT LARCENY", "STEALING", SUSPECTED_CRIME_DESCRIPTION))
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "AUTO STRIPPIG" | SUSPECTED_CRIME_DESCRIPTION == "MAKING GRAFFITI", "VANDALISM", SUSPECTED_CRIME_CATEGORY))
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "CPSP" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF MARIHUANA" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF CONTROLLED SUBSTANCE" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF FORGED INSTRUMENT" | SUSPECTED_CRIME_DESCRIPTION == "CPW", "CRIMINAL POSSESSION", SUSPECTED_CRIME_CATEGORY))
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL SALE OF MARIHUANA" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL SALE OF CONTROLLED SUBSTANCE", "CRIMINAL SALE", SUSPECTED_CRIME_CATEGORY))
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "MISD", "MISDEMEANOR", SUSPECTED_CRIME_CATEGORY))
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "PROSTITUTION" | SUSPECTED_CRIME_DESCRIPTION == "RAPE", "SEXUAL CRIME", SUSPECTED_CRIME_CATEGORY))
+```
+
 
 ```{r}
 # Univariate EDA
 ggplot(data = filtered_1719, aes(x = RACE)) +
   geom_bar() +
-  labs(title = "Race of Suspects in SQF Events")
+  labs(x = "Race of Suspect", y = 
+         "Frequency", title = "Race of Suspects in SQF Events")
+ggplot(data = filtered_1719, aes(x = ARRESTED)) +
+  geom_bar() +
+  labs(title = "Number Arrested in SQF Events")
+barplot(popSums[3:6], main = "Population Totals by Race")
 ```
+
+```{r}
+arrest_model <- glm(ARRESTED ~ RACE + FRISKED_FLAG + SEARCHED_FLAGtt, data = filtered_1719)
+tidy(arrest_model)
+```
+
 

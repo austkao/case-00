@@ -7,6 +7,8 @@ output: pdf_document
 
 Introduction
 
+The New York City police department has a Stop-Question-Frisk (SQF) policy where individuals can be stopped by police to be questioned and, in some cases, frisked based on the reasonable suspicion that the individual will commit a crime or is committing a crime. However, opponents of the policy protest that black and Hispanic residents are stopped by police at a significantly higher rate than white and Asian residents. We seek to examine what racial disparities exist in SQF events and/or outcomes among Black and Hispanic citizens. The data used for this case study comes directly from the NYPD Stop, Question, and Frisk database from the years of 2017 to 2019.
+
 The purpose of this case study is to examine what racial disparities exist in SQF events and/or outcomes among Black and Hispanic citizens.
 
 Because we are primarily concerned with the race of the suspects at SQF events, we filtered out 427 observations where the race was listed as null or male.
@@ -18,3 +20,5 @@ Results
 Discussion
 
 Appendix
+
+Bibliography
