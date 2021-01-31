@@ -1,0 +1,46 @@
+---
+title: "EDA"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Specify all libraries needed
+library(tidyverse)
+```
+
+
+```{r}
+data17 = read.csv("sqf-2017.csv")
+data18 = read.csv("sqf-2018.csv")
+data19 = read.csv("sqf-2019.csv")
+data18 <- data18 %>% rename(STOP_FRISK_TIME = Stop.Frisk.Time)
+data19 <- data19 %>% rename(STOP_FRISK_ID = STOP_ID_ANONY)
+```
+
+```{r}
+combined_1718 <- rbind(data17, data18)
+combined_1718$SUPERVISING_ACTION_CORRESPONDING_ACTIVITY_LOG_ENTRY_REVIEWED <- NULL
+combined_1718$STOP_LOCATION_PREMISES_NAME <- NULL
+data19$ASK_FOR_CONSENT_FLG <- NULL
+data19$CONSENT_GIVEN_FLG <- NULL
+combined_1719 <- rbind(combined_1718, data19)
+filtered_1719 <- combined_1719 %>%
+  filter(!SUSPECT_RACE_DESCRIPTION == "(null)" & !SUSPECT_RACE_DESCRIPTION == "MALE")
+filtered_1719 <- filtered_1719 %>%
+  mutate(RACE = if_else(SUSPECT_RACE_DESCRIPTION == "AMERICAN INDIAN/ALASKAN NATIVE"
+                        | SUSPECT_RACE_DESCRIPTION == "AMERICAN INDIAN/ALASKAN N", "AMER IND", SUSPECT_RACE_DESCRIPTION))
+filtered_1719 <- filtered_1719 %>%
+  mutate(RACE = if_else(RACE == "ASIAN / PACIFIC ISLANDER", "ASIAN/PAC.ISL", RACE))
+```
+
+```{r}
+# Univariate EDA
+ggplot(data = filtered_1719, aes(x = RACE)) +
+  geom_bar() +
+  labs(title = "Race of Suspects in SQF Events")
+```
+

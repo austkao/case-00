@@ -7,6 +7,10 @@ output: pdf_document
 
 Introduction
 
+The purpose of this case study is to examine what racial disparities exist in SQF events and/or outcomes among Black and Hispanic citizens.
+
+Because we are primarily concerned with the race of the suspects at SQF events, we filtered out 427 observations where the race was listed as null or male.
+
 Methodology
 
 Results
