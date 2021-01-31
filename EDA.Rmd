@@ -51,12 +51,23 @@ filtered_1719 <- filtered_1719 %>%
 filtered_1719 <- filtered_1719 %>%
   mutate(RACE = if_else(RACE == "ASIAN / PACIFIC ISLANDER", "ASIAN/PAC.ISL", RACE))
 filtered_1719 <- filtered_1719 %>%
+  mutate(RACE = if_else(RACE == "WHITE HISPANIC", "W. HISP.", RACE))
+filtered_1719 <- filtered_1719 %>%
+  mutate(RACE = if_else(RACE == "BLACK HISPANIC", "B. HISP.", RACE))
+filtered_1719$RACE <- fct_relevel(filtered_1719$RACE, "WHITE", "ASIAN/PAC.ISL", "W. HISP.", "B. HISP.", "BLACK", "AMER IND")
+filtered_1719 <- filtered_1719 %>%
   mutate(ARRESTED = if_else(SUSPECT_ARRESTED_FLAG == "Y", 1, 0))
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "ROBBERY" | SUSPECTED_CRIME_DESCRIPTION == "ASSAULT" | SUSPECTED_CRIME_DESCRIPTION == "RAPE" | SUSPECTED_CRIME_DESCRIPTION == "MURDER" | SUSPECTED_CRIME_DESCRIPTION == "TERRORISM" | SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "RECKLESS ENDANGERMENT" | SUSPECTED_CRIME_DESCRIPTION == "MENACING", 1, 0))
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECT_DRUG_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF MARIHUANA" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL POSSESSION OF CONTROLLED SUBSTANCE" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL SALE OF MARIHUANA" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL SALE OF CONTROLLED SUBSTANCE", 1, 0))
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECT_SEX_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "RAPE" | SUSPECTED_CRIME_DESCRIPTION == "PROSTITUTION" | SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "CRIMINAL SALE OF CONTROLLED SUBSTANCE", "SEX RELATED", "NON-SEX RELATED"))
+filtered_1719 <- filtered_1719 %>%
+  mutate(PHYSICAL_FORCE_USED = if_else(PHYSICAL_FORCE_CEW_FLAG == "Y" | PHYSICAL_FORCE_DRAW_POINT_FIREARM_FLAG == "Y" | PHYSICAL_FORCE_OC_SPRAY_USED_FLAG == "Y" | PHYSICAL_FORCE_OTHER_FLAG == "Y" | PHYSICAL_FORCE_RESTRAINT_USED_FLAG == "Y" | PHYSICAL_FORCE_WEAPON_IMPACT_FLAG == "Y", 1, 0))
 ```
 
 ```{r}
-filtered_1719 <- filtered_1719 %>%
-  mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "ROBBERY" | SUSPECTED_CRIME_DESCRIPTION == "BURGLARY" | SUSPECTED_CRIME_DESCRIPTION == "GRAND LARCENY" | SUSPECTED_CRIME_DESCRIPTION == "GRAND LARCENY AUTO" | SUSPECTED_CRIME_DESCRIPTION == "PETIT LARCENY", "STEALING", SUSPECTED_CRIME_DESCRIPTION))
 filtered_1719 <- filtered_1719 %>%
   mutate(SUSPECTED_CRIME_CATEGORY = if_else(SUSPECTED_CRIME_DESCRIPTION == "AUTO STRIPPIG" | SUSPECTED_CRIME_DESCRIPTION == "MAKING GRAFFITI", "VANDALISM", SUSPECTED_CRIME_CATEGORY))
 filtered_1719 <- filtered_1719 %>%
@@ -76,14 +87,30 @@ ggplot(data = filtered_1719, aes(x = RACE)) +
   geom_bar() +
   labs(x = "Race of Suspect", y = 
          "Frequency", title = "Race of Suspects in SQF Events")
+ggplot(data = filtered_1719, aes(x = SUSPECTED_CRIME_CATEGORY)) +
+  geom_bar() +
+  labs(title = "Number Arrested in SQF Events")
 ggplot(data = filtered_1719, aes(x = ARRESTED)) +
   geom_bar() +
   labs(title = "Number Arrested in SQF Events")
 barplot(popSums[3:6], main = "Population Totals by Race")
+mosaicplot(filtered_1719$RACE ~ filtered_1719$PHYSICAL_FORCE_USED, data = filtered_1719)
 ```
 
 ```{r}
-arrest_model <- glm(ARRESTED ~ RACE + FRISKED_FLAG + SEARCHED_FLAGtt, data = filtered_1719)
+sum(filtered_1719$SUSPECTED_CRIME_CATEGORY == 1 & filtered_1719$RACE == "BLACK")/sum(filtered_1719$RACE == "BLACK")
+sum(filtered_1719$SUSPECTED_CRIME_CATEGORY == 1 & filtered_1719$RACE == "WHITE")/sum(filtered_1719$RACE == "WHITE")
+sum(filtered_1719$ARRESTED == 1 & filtered_1719$RACE == "W. HISP.")/sum(filtered_1719$RACE == "W. HISP.")
+sum(filtered_1719$ARRESTED == 1 & filtered_1719$RACE == "B. HISP.")/sum(filtered_1719$RACE == "B. HISP.")
+sum(filtered_1719$ARRESTED == 1 & filtered_1719$RACE == "AMER IND")/sum(filtered_1719$RACE == "AMER IND")
+sum(filtered_1719$ARRESTED == 1 & filtered_1719$RACE == "ASIAN/PAC.ISL")/sum(filtered_1719$RACE == "ASIAN/PAC.ISL")
+sum(filtered_1719$STOP_DURATION_MINUTES)/sum(filtered_1719$RACE == "WHITE")
+sum(filtered_1719$STOP_DURATION_MINUTES)/ sum(filtered_1719$RACE == "BLACK")
+```
+
+
+```{r}
+arrest_model <- glm(SUSPECTED_CRIME_CATEGORY ~ RACE + FRISKED_FLAG + SEARCHED_FLAG + SUSPECT_ARRESTED_FLAG, data = filtered_1719)
 tidy(arrest_model)
 ```
 

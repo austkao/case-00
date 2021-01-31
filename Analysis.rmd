@@ -5,20 +5,72 @@ date: 1/31/2021
 output: pdf_document
 ---
 
-Introduction
+```{r}
+# Specify all libraries needed
+library(tidyverse)
+```
 
-The New York City police department has a Stop-Question-Frisk (SQF) policy where individuals can be stopped by police to be questioned and, in some cases, frisked based on the reasonable suspicion that the individual will commit a crime or is committing a crime. However, opponents of the policy protest that black and Hispanic residents are stopped by police at a significantly higher rate than white and Asian residents. We seek to examine what racial disparities exist in SQF events and/or outcomes among Black and Hispanic citizens. The data used for this case study comes directly from the NYPD Stop, Question, and Frisk database from the years of 2017 to 2019.
+#Introduction
+
+The New York City police department has a Stop-Question-Frisk (SQF) policy where individuals can be stopped by police to be questioned and, in some cases, frisked based on the reasonable suspicion that the individual will commit a crime or is committing a crime. However, opponents of the policy protest that black and Hispanic residents are stopped by police at a significantly higher rate than white and Asian residents, making the practice unconstitutional. Now that a class-action lawsuit has led the NYPD to require justification for any SQF event, we seek to examine what racial disparities still exist in SQF events and/or outcomes among Black and Hispanic citizens. Specifically, we seek to explain the impact of race on why police choose to stop Black and Hispanic residents over suspected violent crimes.
+
+The data used for this case study comes directly from the NYPD Stop, Question, and Frisk database from the years of 2017 to 2019. We also use NYC police precinct data adapted from data compiled by John Keefe, an editor for the New York Times.
 
 The purpose of this case study is to examine what racial disparities exist in SQF events and/or outcomes among Black and Hispanic citizens.
 
 Because we are primarily concerned with the race of the suspects at SQF events, we filtered out 427 observations where the race was listed as null or male.
 
-Methodology
+#Methodology
 
-Results
+```{r}
+# Load in all data being used, rename certain fields
+data17 = read.csv("sqf-2017.csv")
+data18 = read.csv("sqf-2018.csv")
+data19 = read.csv("sqf-2019.csv")
+data18 <- data18 %>% rename(STOP_FRISK_TIME = Stop.Frisk.Time)
+data19 <- data19 %>% rename(STOP_FRISK_ID = STOP_ID_ANONY)
+```
 
-Discussion
+```{r}
+# Create a combined data set
+combined_1718 <- rbind(data17, data18)
+combined_1718$SUPERVISING_ACTION_CORRESPONDING_ACTIVITY_LOG_ENTRY_REVIEWED <- NULL
+combined_1718$STOP_LOCATION_PREMISES_NAME <- NULL
+data19$ASK_FOR_CONSENT_FLG <- NULL
+data19$CONSENT_GIVEN_FLG <- NULL
+combined_1719 <- rbind(combined_1718, data19)
+```
 
-Appendix
+```{r}
+# Filter out missing race data, adjust data in certain columns
+filtered_1719 <- combined_1719 %>%
+  filter(!SUSPECT_RACE_DESCRIPTION == "(null)" & !SUSPECT_RACE_DESCRIPTION == "MALE")
+filtered_1719 <- filtered_1719 %>%
+  mutate(RACE = if_else(SUSPECT_RACE_DESCRIPTION == "AMERICAN INDIAN/ALASKAN NATIVE"
+                        | SUSPECT_RACE_DESCRIPTION == "AMERICAN INDIAN/ALASKAN N", "AMER IND", SUSPECT_RACE_DESCRIPTION))
+filtered_1719 <- filtered_1719 %>%
+  mutate(RACE = if_else(RACE == "ASIAN / PACIFIC ISLANDER", "ASIAN/PAC.ISL", RACE))
+filtered_1719 <- filtered_1719 %>%
+  mutate(RACE = if_else(RACE == "WHITE HISPANIC", "W. HISP.", RACE))
+filtered_1719 <- filtered_1719 %>%
+  mutate(RACE = if_else(RACE == "BLACK HISPANIC", "B. HISP.", RACE))
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECTED_VIOLENCE = if_else(SUSPECTED_CRIME_DESCRIPTION == "ROBBERY" | SUSPECTED_CRIME_DESCRIPTION == "ASSAULT" | SUSPECTED_CRIME_DESCRIPTION == "RAPE" | SUSPECTED_CRIME_DESCRIPTION == "MURDER" | SUSPECTED_CRIME_DESCRIPTION == "TERRORISM" | SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "RECKLESS ENDANGERMENT" | SUSPECTED_CRIME_DESCRIPTION == "MENACING", 1, 0))
+```
+
+To classify a crime as violent, we created the "SUSPECTED_VIOLENCE" column, which has a value of 1 if the suspected crime is violent in nature, and 0 if the suspected crime is nonviolent. We based the "SUSPECTED_VIOLENCE" column on the information given for "SUSPECTED_CRIME_DESCRIPTION". The crimes we decided were violent are assault, menacing, forcible touching, murder, rape, terrorism, reckless endangerment, and robbery.
+
+#Results
+
+Based off the predictor variables we chose, we generated a model for the log odds that a suspect will be stopped by the police for a violent crime.
+
+```{r}
+violence_model <- glm(SUSPECTED_VIOLENCE ~ RACE + FRISKED_FLAG + SEARCHED_FLAG + SUSPECT_ARRESTED_FLAG, data = filtered_1719)
+tidy(violence_model)
+```
+
+#Discussion
+
+#Appendix
 
 Bibliography
