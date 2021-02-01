@@ -42,14 +42,9 @@ combined_1719 <- rbind(combined_1718, data19)
 ```
 
 ```{r, echo = FALSE}
-# Filter out missing race data, adjust data in certain columns
+# Filter out missing race data, create RACE and SUSPECTED_VIOLENCE columns
 filtered_1719 <- combined_1719 %>%
   filter(!SUSPECT_RACE_DESCRIPTION == "(null)" & !SUSPECT_RACE_DESCRIPTION == "MALE")
-filtered_1719 <- filtered_1719 %>%
-  filter(!SUSPECT_HEIGHT == "(null)" & !SUSPECT_HEIGHT == "#NULL!")
-filtered_1719$SUSPECT_HEIGHT <- as.numeric(filtered_1719$SUSPECT_HEIGHT)
-filtered_1719 <- filtered_1719 %>%
-  filter(!SUSPECT_HEIGHT == 60.11)
 filtered_1719 <- filtered_1719 %>%
   mutate(RACE = if_else(SUSPECT_RACE_DESCRIPTION == "AMERICAN INDIAN/ALASKAN NATIVE"
                         | SUSPECT_RACE_DESCRIPTION == "AMERICAN INDIAN/ALASKAN N", "AMER IND", SUSPECT_RACE_DESCRIPTION))
@@ -59,8 +54,28 @@ filtered_1719 <- filtered_1719 %>%
   mutate(RACE = if_else(RACE == "WHITE HISPANIC", "W. HISP.", RACE))
 filtered_1719 <- filtered_1719 %>%
   mutate(RACE = if_else(RACE == "BLACK HISPANIC", "B. HISP.", RACE))
+filtered_1719$RACE <- fct_relevel(filtered_1719$RACE, "WHITE", "ASIAN/PAC.ISL", "W. HISP.", "B. HISP.", "BLACK", "AMER IND")
 filtered_1719 <- filtered_1719 %>%
   mutate(SUSPECTED_VIOLENCE = if_else(SUSPECTED_CRIME_DESCRIPTION == "ROBBERY" | SUSPECTED_CRIME_DESCRIPTION == "ASSAULT" | SUSPECTED_CRIME_DESCRIPTION == "RAPE" | SUSPECTED_CRIME_DESCRIPTION == "MURDER" | SUSPECTED_CRIME_DESCRIPTION == "TERRORISM" | SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "RECKLESS ENDANGERMENT" | SUSPECTED_CRIME_DESCRIPTION == "MENACING", 1, 0))
+```
+
+```{r, echo = FALSE}
+# Clean data for predictor variables
+filtered_1719 <- filtered_1719 %>%
+  filter(!SUSPECT_HEIGHT == "(null)" & !SUSPECT_HEIGHT == "#NULL!")
+filtered_1719$SUSPECT_HEIGHT <- as.numeric(filtered_1719$SUSPECT_HEIGHT)
+filtered_1719 <- filtered_1719 %>%
+  filter(!SUSPECT_HEIGHT == 60.11)
+filtered_1719 <- filtered_1719 %>%
+  filter(!SUSPECT_WEIGHT == "(null)")
+filtered_1719$SUSPECT_WEIGHT <- as.numeric(filtered_1719$SUSPECT_WEIGHT)
+filtered_1719 <- filtered_1719 %>%
+  filter(!SUSPECT_WEIGHT == 0 & !SUSPECT_WEIGHT == 1)
+filtered_1719 <- filtered_1719 %>%
+  mutate(WEAPON_FOUND = if_else(WEAPON_FOUND_FLAG == "(", "N", WEAPON_FOUND_FLAG))
+filtered_1719 <- filtered_1719 %>%
+  filter(!SUSPECT_REPORTED_AGE == "(null)")
+filtered_1719$SUSPECT_REPORTED_AGE <- as.numeric(filtered_1719$SUSPECT_REPORTED_AGE)
 ```
 
 To classify a crime as violent, we created the "SUSPECTED_VIOLENCE" column, which has a value of 1 if the suspected crime is violent in nature, and 0 if the suspected crime is nonviolent. We based the "SUSPECTED_VIOLENCE" column on the information given for "SUSPECTED_CRIME_DESCRIPTION". The crimes we decided were violent are assault, menacing, forcible touching, murder, rape, terrorism, reckless endangerment, and robbery, while all other crimes were classified as nonviolent.
@@ -79,14 +94,16 @@ ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLE
 Based off the predictor variables we chose, we generated a model for the log odds that a suspect will be stopped by the police for a violent crime.
 
 ```{r}
-violence_model <- glm(SUSPECTED_VIOLENCE ~ RACE + FRISKED_FLAG
-                      + SEARCHED_FLAG, data = filtered_1719)
+violence_model <- glm(SUSPECTED_VIOLENCE ~ RACE + SUSPECT_HEIGHT + SUSPECT_WEIGHT
+                      + SUSPECT_REPORTED_AGE + SUSPECT_SEX + WEAPON_FOUND, data = filtered_1719)
 tidy(violence_model)
 ```
 
+The model is $$\text{log}\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 x_0+\beta_2 x_1+ \beta_3 x_2+ \beta_4 x_3 + \beta_5 x_4+\beta_6 x_5+ \beta_7 x_6+ \beta_8 x_7 + \beta_9 x_8+\beta_{10} x_9+ \beta_{11} x_{10}$$
+
 # Discussion
 
-
+From these results, we can see how race has a significant impact on police decisions. The log odds of police suspicion of a violent crime increase by 7.26 for a white hispanic than for a white person. This means that the police consistently use race to make them suspicious enough for an SQF event.
 
 # Appendix
 
