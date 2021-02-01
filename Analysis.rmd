@@ -12,11 +12,11 @@ library(tidyverse)
 
 # Introduction
 
-The New York City police department has a Stop-Question-Frisk (SQF) policy where individuals can be stopped by police to be questioned and, in some cases, frisked based on the reasonable suspicion that the individual will commit a crime or is committing a crime. However, opponents of the policy protest that black and Hispanic residents are stopped by police at a significantly higher rate than white and Asian residents, making the practice unconstitutional. Now that a class-action lawsuit has led the NYPD to require justification for any SQF event, we seek to examine the impact of race in why police choose to stop residents over suspected violent crimes. We define violent crime to be any crime that involves force or the threat of force, which includes things like murder, robbery, and assault.
+The New York City police department has a Stop-Question-Frisk (SQF) policy where individuals can be stopped by police to be questioned and, in some cases, frisked based on the reasonable suspicion that the individual will commit a crime or is committing a crime. However, opponents of the policy protest that black and Hispanic residents are stopped by police at a significantly higher rate than white and Asian residents, making the practice unconstitutional. Now that a class-action lawsuit has led the NYPD to require justification for any SQF event, we seek to examine any racial disparities that remain in the police rationale to stop residents for violent crimes. We define violent crime to be any crime that involves force or the threat of force, which includes crimes like murder, robbery, and assault.
 
-The data used for this case study comes directly from the NYPD Stop, Question, and Frisk database from the years of 2017 to 2019. We also use NYC police precinct data adapted from data compiled by John Keefe, an editor for the New York Times.
+The data used for this case study comes directly from the NYPD Stop, Question, and Frisk database from the years of 2017 to 2019. We also use NYC police precinct data adapted from data compiled by John Keefe, an editor for the New York Times. To determine what justification police officers are providing for executing an SQF event, we used the "SUSPECTED_CRIME_DESCRIPTION" field in the Stop, Question, and Frisk database, which lists the exact crime being investigated. Since there are a variety of different crimes that can be investigated, we classify the crimes into violent and nonviolent categories.
 
-Because we are primarily concerned with the race of the suspects at SQF events, we filtered out 427 observations where the race was listed as null or male. Also, to examine SQF events across the years between 2017 and 2019.
+Because we are examining why police officers decide to conduct an SQF event, we want to consider any potential details officers will have access to or will have considered before commencing a stop, which are details like height, weight, the presence of a weapon, body build type, age, and sex. We will also consider race as a factor and compare its influence against these other factors to establish how great an impact race has in these decisions and also to examine what racial disparities exist.
 
 ```{r, echo = FALSE}
 # Load in all data being used, rename certain fields
@@ -27,6 +27,10 @@ data18 <- data18 %>% rename(STOP_FRISK_TIME = Stop.Frisk.Time)
 data19 <- data19 %>% rename(STOP_FRISK_ID = STOP_ID_ANONY)
 ```
 
+# Methodology
+
+Because we are primarily concerned with the race of the suspects at SQF events, we filtered out 427 observations where the race was listed as null or male. Also, to examine SQF events across the years between 2017 and 2019, we combined the data sets from 2017 to 2019 into one data set. Any fields that are present in one data set but absent in another were excluded from the overall data set. The fields are named "SUPERVISING_ACTION_CORRESPONDING_ACTIVITY_LOG_ENTRY_REVIEWED" and "STOP_LOCATION_PREMISES_NAME"are both present in the 2017 and 2018 data sets but absent in the 2019 data, while the fields named "ASK_FOR_CONSENT_FLG" and "CONSENT_GIVEN_FLG"are both present in the 2019 data set but absent in both the 2017 and 2018 data. None of the fields being excluded affect police decisions to execute an SQF event except for perhaps the premises, but other stop location fields are more comprehensive and can act as sufficient substitutes.
+
 ```{r, echo = FALSE}
 # Create a combined data set
 combined_1718 <- rbind(data17, data18)
@@ -36,10 +40,6 @@ data19$ASK_FOR_CONSENT_FLG <- NULL
 data19$CONSENT_GIVEN_FLG <- NULL
 combined_1719 <- rbind(combined_1718, data19)
 ```
-
-Because we are examining the justification police officers give in conducting an SQF event, we want to consider any potential details officers will have access to or will have considered before commencing a stop, which are details like height, height, the presence of a weapon, body build type, age, and sex. We will also consider race as a factor and compare its influence against these other factors to establish the amount of racial disparity.
-
-# Methodology
 
 ```{r, echo = FALSE}
 # Filter out missing race data, adjust data in certain columns
@@ -63,14 +63,12 @@ filtered_1719 <- filtered_1719 %>%
   mutate(SUSPECTED_VIOLENCE = if_else(SUSPECTED_CRIME_DESCRIPTION == "ROBBERY" | SUSPECTED_CRIME_DESCRIPTION == "ASSAULT" | SUSPECTED_CRIME_DESCRIPTION == "RAPE" | SUSPECTED_CRIME_DESCRIPTION == "MURDER" | SUSPECTED_CRIME_DESCRIPTION == "TERRORISM" | SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "RECKLESS ENDANGERMENT" | SUSPECTED_CRIME_DESCRIPTION == "MENACING", 1, 0))
 ```
 
-To classify a crime as violent, we created the "SUSPECTED_VIOLENCE" column, which has a value of 1 if the suspected crime is violent in nature, and 0 if the suspected crime is nonviolent. We based the "SUSPECTED_VIOLENCE" column on the information given for "SUSPECTED_CRIME_DESCRIPTION". The crimes we decided were violent are assault, menacing, forcible touching, murder, rape, terrorism, reckless endangerment, and robbery.
-
-Because of missing data, some more observations were filtered from the data. There was also a suspect recorded as being 60.11 feet tall. This data point was also removed since it is unclear if the officer was using inches or added an extra zero.
+To classify a crime as violent, we created the "SUSPECTED_VIOLENCE" column, which has a value of 1 if the suspected crime is violent in nature, and 0 if the suspected crime is nonviolent. We based the "SUSPECTED_VIOLENCE" column on the information given for "SUSPECTED_CRIME_DESCRIPTION". The crimes we decided were violent are assault, menacing, forcible touching, murder, rape, terrorism, reckless endangerment, and robbery, while all other crimes were classified as nonviolent.
 
 We also removed an additional 1749 observations due to missing or impossible height and weight data. There was a suspect recorded as being 60.11 feet tall. This data point was also removed since it is unclear if the officer was using inches or added an extra zero. Some suspects had a recorded weight of 0, while one suspect had a weight of 1, which are both impossible, so these data points were also removed.
 
 ```{r}
-ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_HEIGHT")) +
+ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_HEIGHT)) +
   geom_boxplot() +
   labs(title = "Effect of Height on Suspected Violent Crime")
 ```

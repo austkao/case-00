@@ -80,6 +80,9 @@ filtered_1719 <- filtered_1719 %>%
   filter(!SUSPECT_WEIGHT == 0 & !SUSPECT_WEIGHT == 1)
 filtered_1719 <- filtered_1719 %>%
   mutate(WEAPON_FOUND = if_else(WEAPON_FOUND_FLAG == "(", "N", WEAPON_FOUND_FLAG))
+filtered_1719 <- filtered_1719 %>%
+  filter(!SUSPECT_REPORTED_AGE == "(null)")
+filtered_1719$SUSPECT_REPORTED_AGE <- as.numeric(filtered_1719$SUSPECT_REPORTED_AGE)
 ```
 
 
@@ -98,17 +101,21 @@ ggplot(data = filtered_1719, aes(x = ARRESTED)) +
   labs(title = "Number Arrested in SQF Events")
 barplot(popSums[3:6], main = "Population Totals by Race")
 mosaicplot(filtered_1719$RACE ~ filtered_1719$PHYSICAL_FORCE_USED, data = filtered_1719)
-ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_HEIGHT")) +
+ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_HEIGHT)) +
   geom_boxplot() +
   labs(title = "Effect of Height on Suspected Violent Crime")
-ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_WEIGHT")) +
+ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_WEIGHT)) +
   geom_boxplot() +
   labs(title = "Effect of Weight on Suspected Violent Crime")
+ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_REPORTED_AGE)) +
+  geom_boxplot() +
+  labs(title = "Effect of Age on Suspected Violent Crime")
 ```
 
 ```{r}
 mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$WEAPON_FOUND, data = filtered_1719)
 mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$SUSPECT_SEX, data = filtered_1719)
+mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$SUSPECT_REPORTED_AGE, data = filtered_1719)
 ```
 
 
