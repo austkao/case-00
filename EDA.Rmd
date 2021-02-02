@@ -95,6 +95,10 @@ filtered_1719 <- filtered_1719 %>%
 #filtered_1719 <- filtered_1719 %>%
 #  filter(!SUSPECT_REPORTED_AGE == "(null)")
 #filtered_1719$SUSPECT_REPORTED_AGE <- as.numeric(filtered_1719$SUSPECT_REPORTED_AGE)
+filtered_1719 <- filtered_1719 %>%
+  filter(STOP_LOCATION_BORO_NAME == "MANHATTAN" | STOP_LOCATION_BORO_NAME == "QUEENS" | 
+           STOP_LOCATION_BORO_NAME == "STATEN ISLAND" | STOP_LOCATION_BORO_NAME == "BROOKLYN" | 
+           STOP_LOCATION_BORO_NAME == "BRONX")
 ```
 
 
@@ -129,6 +133,7 @@ mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$WEAPON_FOUND, data =
 mosaicplot(filtered_1719$SUSPECT_SEX ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719)
 #mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$SUSPECT_REPORTED_AGE, data = filtered_1719)
 mosaicplot(filtered_1719$STOP_WAS_INITIATED ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719)
+mosaicplot(filtered_1719$RACE ~ filtered_1719$STOP_LOCATION_BORO_NAME, data = filtered_1719)
 ```
 
 

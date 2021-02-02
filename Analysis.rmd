@@ -18,6 +18,9 @@ data18 = read.csv("sqf-2018.csv")
 data19 = read.csv("sqf-2019.csv")
 data18 <- data18 %>% rename(STOP_FRISK_TIME = Stop.Frisk.Time)
 data19 <- data19 %>% rename(STOP_FRISK_ID = STOP_ID_ANONY)
+# Ensure unique IDs before combining
+data18$STOP_FRISK_ID <- data18$STOP_FRISK_ID*100+18
+data19$STOP_FRISK_ID <- data19$STOP_FRISK_ID*100+19
 # Create a combined data set
 combined_1718 <- rbind(data17, data18)
 combined_1718$SUPERVISING_ACTION_CORRESPONDING_ACTIVITY_LOG_ENTRY_REVIEWED <- NULL
@@ -59,6 +62,11 @@ filtered_1719 <- filtered_1719 %>%
    filter(!SUSPECT_REPORTED_AGE == "(null)")
 filtered_1719$SUSPECT_REPORTED_AGE <- as.numeric(filtered_1719$SUSPECT_REPORTED_AGE)
 filtered_1719$SUSPECT_REPORTED_AGE <- filtered_1719$SUSPECT_REPORTED_AGE - mean(filtered_1719$SUSPECT_REPORTED_AGE)
+# Take a random sample of the data
+set.seed(123456789)
+sampled_ids <- sample(filtered_1719$STOP_FRISK_ID, size=3000, replace=F)
+sqf_sample <- filtered_1719 %>%
+  filter(STOP_FRISK_ID %in% sampled_ids)
 ```
 
 # Introduction
@@ -67,12 +75,12 @@ The New York City police department has a Stop-Question-Frisk (SQF) policy where
 
 The data used for this case study comes directly from the NYPD Stop, Question, and Frisk database from the years of 2017 to 2019. Officers who conduct an SQF event are supposed to complete a form recording details about the event. These forms are then entered into the electronic database, which the NYPD releases annually. We also use NYC police precinct data adapted from data compiled by John Keefe, an editor for the New York Times. To determine what justification police officers are providing for executing an SQF event, we used the "SUSPECTED_CRIME_DESCRIPTION" field in the Stop, Question, and Frisk database, which lists the exact crime being investigated. We then classified the listed crimes into violent and nonviolent categories for a new variable called "SUSPECTED_VIOLENCE", which will act as our response variable. "SUSPECTED_VIOLENCE" has a value of 1 if the suspected crime is violent in nature, and 0 if the suspected crime is nonviolent.
 
-Because we are examining why police officers decide to conduct an SQF event, we want to consider any potential details officers will have access to or will have considered before commencing a stop, which are details like height, weight, the presence of a weapon, body build type, age, sex, and how the stop was initiated. We will also consider race as a factor and compare its influence against these other factors to establish how great an impact race has in these decisions and also to examine what racial disparities exist.
+Because we are examining why police officers decide to conduct an SQF event, we want to consider any potential details officers will have access to or will have considered before commencing a stop, which are details like height, age, sex, body build type, age, sex, and how the stop was initiated. We will also consider race as a factor and compare its influence against these other factors to establish how great an impact race has in these decisions and also to examine what racial disparities exist. After an EDA about how each of these factors affects police suspicion of violent crime, we determined height, age, sex, and how the stop was initiated to be the most significant factors, so we will use these factors in our model.
 
 On preliminary examination of the data, it would seem that some racial disparity does exist. When comparing the ratio of stops for suspected violent and nonviolent crimes for each race, black and Hispanic residents are stopped for suspected violent crimes at higher rates than white residents.
 
 ```{r, echo = FALSE}
-mosaicplot(filtered_1719$RACE ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719, xlab = "Race of Suspect", ylab = "Suspicion of sViolent Crime", main = "Ratio Between Suspected Violent and Nonviolent Crimes by Race")
+mosaicplot(sqf_sample$RACE ~ sqf_sample$SUSPECTED_VIOLENCE, data = sqf_sample, xlab = "Race of Suspect", ylab = "Suspicion of Violent Crime", main = "Ratio Between Suspected Violent and Nonviolent Crimes by Race")
 ```
 
 # Methodology
@@ -87,25 +95,81 @@ In regards to the sex of the suspect, there were some null values present in the
 
 To allow for meaningful interpretation of the intercept, we centered the variables "SUSPECT_HEIGHT" and "SUSPECT_REPORTED_AGE" about their means.
 
+We proceeded to take a simple random sample of 3000 observations out of the remaining 32539 observations to serve as the basis for our model. This also satisfies our model assumption that the data is random.
+
 # Results
 
 Based off the predictor variables we chose, we generated a model for the log odds that a suspect will be stopped by the police for a violent crime.
 
 ```{r, echo = FALSE}
-violence_model <- glm(SUSPECTED_VIOLENCE ~ RACE + SUSPECT_HEIGHT + SUSPECT_REPORTED_AGE + SUSPECT_SEX + STOP_WAS_INITIATED, data = filtered_1719)
+# Create model, generate output
+violence_model <- glm(SUSPECTED_VIOLENCE ~ RACE + SUSPECT_HEIGHT + SUSPECT_REPORTED_AGE + SUSPECT_SEX + STOP_WAS_INITIATED, data = sqf_sample, family = binomial)
 tidy(violence_model)
 ```
 
 The model has the form $\text{log}\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 x_0+\beta_2 x_1+ \beta_3 x_2+ \beta_4 x_3 + \beta_5 x_4+\beta_6 x_5+ \beta_7 x_6+ \beta_8 x_7 + \beta_9 x_8+\beta_{10} x_9+ \beta_{11} x_{10}$, where $\beta_0$ is the intercept, $\beta_1$ through $\beta_{11}$ are the coefficients for the model parameters, and $x_1$ through $x_{10}$ are different model parameters.
 
+```{r, echo = FALSE}
+# Augment model
+violence_model_aug <- augment(violence_model, type.predict = "response",
+                              type.residuals = "pearson")
+# Plot ROC curve
+library(plotROC) #extension of ggplot2
+(roc_curve <- ggplot(violence_model_aug,
+aes(d = as.numeric(SUSPECTED_VIOLENCE),
+m = .fitted)) +
+geom_roc(n.cuts = 10, labelround = 3) +
+geom_abline(intercept = 0) +
+labs(x = "False Positive Rate (1 - Specificity)",
+y = "True Positive Rate (Sensitivity)") )
+threshold <- 0.3
+```
+
+
 # Discussion
 
-From these results, we can see how race has a significant impact on police decisions. The log odds of police suspicion of a violent crime increase by 7.26 for a white Hispanic than for a white person. This means that the police consistently use race to make them suspicious enough for an SQF event.
+From these results, we can see how race has a significant impact on police decisions. For our baseline, we used a white male with mean height and age who was stopped based on the officer's own initiative. The log odds of police suspicion of a violent crime increase by 7.26 for a white Hispanic than for a white person. This means that the police consistently use race to make them suspicious enough for an SQF event.
 
 # Appendix
 
-Note: To reproduce all the results in this case study, simplify knit the Analysis.rmd document.
+Note: To reproduce all the results in this case study, simply knit the Analysis.rmd document.
 
+```{r, echo = FALSE}
+# Bivariate EDA for any predictor variables being considered
+# Filter data for missing values
+filtered_1719 <- filtered_1719 %>%
+ filter(!SUSPECT_WEIGHT == "(null)")
+filtered_1719$SUSPECT_WEIGHT <- as.numeric(filtered_1719$SUSPECT_WEIGHT)
+filtered_1719 <- filtered_1719 %>%
+ filter(!SUSPECT_WEIGHT == 0 & !SUSPECT_WEIGHT == 1)
+filtered_1719 <- filtered_1719 %>%
+ filter(!SUSPECT_BODY_BUILD_TYPE == "(null)" & !SUSPECT_BODY_BUILD_TYPE == "(nu")
+ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_HEIGHT)) +
+ geom_boxplot() +
+ labs(x = "Suspected Violence in Crime", y = "Height", title = "Height of Suspect in Violent/Nonviolent Crime")
+ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_WEIGHT)) +
+ geom_boxplot() +
+ labs(x = "Suspected Violence in Crime", y = "Weight", title = "Weight of Suspect in Violent/Nonviolent Crime")
+ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_REPORTED_AGE)) +
+ geom_boxplot() +
+ labs(x = "Suspected Violence in Crime", y = "Age", title = "Age of Suspect in Violent/Nonviolent Crime")
+mosaicplot(filtered_1719$SUSPECT_SEX ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719,
+           xlab = "Sex", ylab = "Suspected Violent Crime", main = "Ratio of Violent and Nonviolent Crime by Sex")
+mosaicplot(filtered_1719$STOP_WAS_INITIATED ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719,
+           xlab = "How Stop was Initiated", ylab = "Suspected Violent Crime", main = "Ratio of Violent and
+           Nonviolent Crime by How Stop was Initiated")
+mosaicplot(filtered_1719$SUSPECT_BODY_BUILD_TYPE ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719, xlab = "Body Build Type", ylab = "Suspected Violent Crime", main = "Ratio of Violent and Nonviolent Crime by Body Build Type")
+```
+
+
+```{r, echo = FALSE}
+arm::binnedplot(x = violence_model_aug$.fitted, y = violence_model_aug$.resid,
+                xlab = "Predicted Probabilites",
+                main = "Binned Residuals vs. Probabilities",
+                col.int = FALSE)
+```
+
+b
 
 Bibliography
 
