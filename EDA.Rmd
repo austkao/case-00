@@ -29,6 +29,16 @@ pops <- pops %>%
 pops <- pops %>% 
   mutate(PROP_HISP = HISPANIC / total_pop)
 popSums <- colSums(pops)
+pops <- pops %>%
+  mutate(PROP_BLACK_HISP = (BLACK + HISPANIC)/ total_pop)
+pops <- pops %>%
+  mutate(PROP_TOTAL = (OTHER + WHITE + BLACK)/ total_pop)
+prop_black = c()
+for(precinct_num in data17$STOP_LOCATION_PRECINCT) {
+    append(prop_black, pops$PROP_BLACK[precinct_num])
+    }
+#data17 <- data17 %>%
+#  mutate(PRECINCT_PROP_BLACK = pops$PROP_BLACK[STOP_LOCATION_PRECINCT])
 ```
 
 ```{r}
@@ -68,21 +78,23 @@ filtered_1719 <- filtered_1719 %>%
 ```
 
 ```{r}
-filtered_1719 <- filtered_1719 %>%
-  filter(!SUSPECT_HEIGHT == "(null)" & !SUSPECT_HEIGHT == "#NULL!")
-filtered_1719$SUSPECT_HEIGHT <- as.numeric(filtered_1719$SUSPECT_HEIGHT)
-filtered_1719 <- filtered_1719 %>%
-  filter(!SUSPECT_HEIGHT == 60.11)
-filtered_1719 <- filtered_1719 %>%
-  filter(!SUSPECT_WEIGHT == "(null)")
-filtered_1719$SUSPECT_WEIGHT <- as.numeric(filtered_1719$SUSPECT_WEIGHT)
-filtered_1719 <- filtered_1719 %>%
-  filter(!SUSPECT_WEIGHT == 0 & !SUSPECT_WEIGHT == 1)
+#filtered_1719 <- filtered_1719 %>%
+#  filter(!SUSPECT_HEIGHT == "(null)" & !SUSPECT_HEIGHT == "#NULL!")
+#filtered_1719$SUSPECT_HEIGHT <- as.numeric(filtered_1719$SUSPECT_HEIGHT)
+#filtered_1719 <- filtered_1719 %>%
+#  filter(!SUSPECT_HEIGHT == 60.11)
+#filtered_1719 <- filtered_1719 %>%
+#  filter(!SUSPECT_WEIGHT == "(null)")
+#filtered_1719$SUSPECT_WEIGHT <- as.numeric(filtered_1719$SUSPECT_WEIGHT)
+#filtered_1719 <- filtered_1719 %>%
+#  filter(!SUSPECT_WEIGHT == 0 & !SUSPECT_WEIGHT == 1)
 filtered_1719 <- filtered_1719 %>%
   mutate(WEAPON_FOUND = if_else(WEAPON_FOUND_FLAG == "(", "N", WEAPON_FOUND_FLAG))
 filtered_1719 <- filtered_1719 %>%
-  filter(!SUSPECT_REPORTED_AGE == "(null)")
-filtered_1719$SUSPECT_REPORTED_AGE <- as.numeric(filtered_1719$SUSPECT_REPORTED_AGE)
+  mutate(SUSPECT_SEX = if_else(SUSPECT_SEX == "(null)", "UNSPECIFIED", SUSPECT_SEX))
+#filtered_1719 <- filtered_1719 %>%
+#  filter(!SUSPECT_REPORTED_AGE == "(null)")
+#filtered_1719$SUSPECT_REPORTED_AGE <- as.numeric(filtered_1719$SUSPECT_REPORTED_AGE)
 ```
 
 
@@ -101,21 +113,22 @@ ggplot(data = filtered_1719, aes(x = ARRESTED)) +
   labs(title = "Number Arrested in SQF Events")
 barplot(popSums[3:6], main = "Population Totals by Race")
 mosaicplot(filtered_1719$RACE ~ filtered_1719$PHYSICAL_FORCE_USED, data = filtered_1719)
-ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_HEIGHT)) +
-  geom_boxplot() +
-  labs(title = "Effect of Height on Suspected Violent Crime")
-ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_WEIGHT)) +
-  geom_boxplot() +
-  labs(title = "Effect of Weight on Suspected Violent Crime")
-ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_REPORTED_AGE)) +
-  geom_boxplot() +
-  labs(title = "Effect of Age on Suspected Violent Crime")
+#ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_HEIGHT)) +
+#  geom_boxplot() +
+#  labs(title = "Effect of Height on Suspected Violent Crime")
+#ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_WEIGHT)) +
+#  geom_boxplot() +
+#  labs(title = "Effect of Weight on Suspected Violent Crime")
+#ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_REPORTED_AGE)) +
+#  geom_boxplot() +
+#  labs(title = "Effect of Age on Suspected Violent Crime")
 ```
 
 ```{r}
 mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$WEAPON_FOUND, data = filtered_1719)
-mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$SUSPECT_SEX, data = filtered_1719)
-mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$SUSPECT_REPORTED_AGE, data = filtered_1719)
+mosaicplot(filtered_1719$SUSPECT_SEX ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719)
+#mosaicplot(filtered_1719$SUSPECTED_VIOLENCE ~ filtered_1719$SUSPECT_REPORTED_AGE, data = filtered_1719)
+mosaicplot(filtered_1719$STOP_WAS_INITIATED ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719)
 ```
 
 
@@ -131,19 +144,17 @@ sum(filtered_1719$STOP_DURATION_MINUTES)/ sum(filtered_1719$RACE == "BLACK")
 ```
 
 ```{r}
-ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_HEIGHT")) +
-  geom_boxplot() +
-  labs(title = "Effect of Height on Suspected Violent Crime")
-ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_HEIGHT")) +
-  geom_boxplot() +
-  labs(title = "Effect of Height on Suspected Violent Crime")
+#ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_HEIGHT")) +
+#  geom_boxplot() +
+#  labs(title = "Effect of Height on Suspected Violent Crime")
+#ggplot(data = filtered_1719, aes_string(x = "SUSPECTED_VIOLENCE", y = "SUSPECT_HEIGHT")) +
+#  geom_boxplot() +
+#  labs(title = "Effect of Height on Suspected Violent Crime")
 ```
 
 
-
-
 ```{r}
-arrest_model <- glm(SUSPECTED_VIOLENCE ~ RACE + SUSPECT_HEIGHT + SUSPECT_WEIGHT + WEAPON_FOUND_FLAG, data = filtered_1719)
+arrest_model <- glm(SUSPECTED_VIOLENCE ~ RACE + WEAPON_FOUND + SUSPECT_BODY_BUILD_TYPE + STOP_WAS_INITIATED, data = filtered_1719)
 tidy(arrest_model)
 ```
 
