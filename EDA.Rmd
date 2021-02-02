@@ -167,6 +167,18 @@ sum(filtered_1719$STOP_DURATION_MINUTES)/ sum(filtered_1719$RACE == "BLACK")
 #  labs(title = "Effect of Height on Suspected Violent Crime")
 ```
 
+```{r, echo = FALSE}
+# Plot ROC curve
+library(plotROC) #extension of ggplot2
+(roc_curve <- ggplot(violence_model_aug,
+aes(d = as.numeric(SUSPECTED_VIOLENCE),
+m = .fitted)) +
+geom_roc(n.cuts = 10, labelround = 3) +
+geom_abline(intercept = 0) +
+labs(x = "False Positive Rate (1 - Specificity)",
+y = "True Positive Rate (Sensitivity)") )
+threshold <- 0.3
+```
 
 ```{r}
 arrest_model <- glm(SUSPECTED_VIOLENCE ~ RACE + WEAPON_FOUND + SUSPECT_BODY_BUILD_TYPE + STOP_WAS_INITIATED, data = filtered_1719)

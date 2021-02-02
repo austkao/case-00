@@ -126,28 +126,12 @@ Based off the predictor variables we chose, we generated a model for the log odd
 # Create model, generate output
 violence_model <- glm(SUSPECTED_VIOLENCE ~ RACE + SUSPECT_HEIGHT + SUSPECT_REPORTED_AGE + SUSPECT_SEX + STOP_WAS_INITIATED + PRECINCT_PROP_BLACK + PRECINCT_PROP_HISP, data = sqf_sample, family = binomial)
 tidy(violence_model)
-```
-
-The model has the form $\text{log}\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 x_1+ \beta_2 x_2+ \beta_3 x_3+ \beta_4 x_4 + \beta_5 x_5+\beta_6 x_6+ \beta_7 x_7 + \beta_8 x_8 + \beta_9 x_9 + \beta_{10} x_{10} + \beta_{11} x_{11} + \beta_{12} x_{12} + \beta_{13} x_{13}$, where $\beta_0$ is the intercept, $x_1$ is an indicator of whether or not the suspect is Asian/ Pacific Islander, $x_2$ is an indicator of whether or not the suspect is a white Hispanic, $x_3$ is an indicator of whether or not the suspect is a Black Hispanic, $x_4$ is an indicator of whether or not the suspect is Black, $x_5$ is an indicator of whether or not the suspect is an American Indian/ Alaskan Native, $x_6$ is the suspect's height from the mean, $x_7$ is the suspect's reported age from the age, $x_8$ is an indicator of whether or not the suspect is female, $x_9$ is an indicator of whether or not the suspect has an unspecified gender, $x_{10}$ is an indicator of whether or not the police commenced the stop based off of someone else's call over the radio, $x_{11}$ is an indicator of whether or not the police commenced the stop based off of a cooperating witness at the scene, $x_{12}$ is the proportion of Black residents in the precinct, and $x_{13}$ is the proportion of Hispanic residents in the precinct, and $\beta_1$ through $\beta_{13}$ are the corresponding coefficients.
-
-```{r, echo = FALSE}
 # Augment model
 violence_model_aug <- augment(violence_model, type.predict = "response",
                               type.residuals = "pearson")
-# Plot ROC curve
-library(plotROC) #extension of ggplot2
-(roc_curve <- ggplot(violence_model_aug,
-aes(d = as.numeric(SUSPECTED_VIOLENCE),
-m = .fitted)) +
-geom_roc(n.cuts = 10, labelround = 3) +
-geom_abline(intercept = 0) +
-labs(x = "False Positive Rate (1 - Specificity)",
-y = "True Positive Rate (Sensitivity)") )
-threshold <- 0.3
 ```
 
-
-
+The model has the form $\text{log}\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 x_1+ \beta_2 x_2+ \beta_3 x_3+ \beta_4 x_4 + \beta_5 x_5+\beta_6 x_6+ \beta_7 x_7 + \beta_8 x_8 + \beta_9 x_9 + \beta_{10} x_{10} + \beta_{11} x_{11} + \beta_{12} x_{12} + \beta_{13} x_{13}$, where $\beta_0$ is the intercept, $x_1$ is an indicator of whether or not the suspect is Asian/ Pacific Islander, $x_2$ is an indicator of whether or not the suspect is a white Hispanic, $x_3$ is an indicator of whether or not the suspect is a Black Hispanic, $x_4$ is an indicator of whether or not the suspect is Black, $x_5$ is an indicator of whether or not the suspect is an American Indian/ Alaskan Native, $x_6$ is the suspect's height from the mean, $x_7$ is the suspect's reported age from the age, $x_8$ is an indicator of whether or not the suspect is female, $x_9$ is an indicator of whether or not the suspect has an unspecified gender, $x_{10}$ is an indicator of whether or not the police commenced the stop based off of someone else's call over the radio, $x_{11}$ is an indicator of whether or not the police commenced the stop based off of a cooperating witness at the scene, $x_{12}$ is the proportion of Black residents in the precinct, and $x_{13}$ is the proportion of Hispanic residents in the precinct, and $\beta_1$ through $\beta_{13}$ are the corresponding coefficients.
 
 # Discussion
 
