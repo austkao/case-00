@@ -33,13 +33,23 @@ pops <- pops %>%
   mutate(PROP_BLACK_HISP = (BLACK + HISPANIC)/ total_pop)
 pops <- pops %>%
   mutate(PROP_TOTAL = (OTHER + WHITE + BLACK)/ total_pop)
-prop_black = c()
-for(precinct_num in data17$STOP_LOCATION_PRECINCT) {
-    append(prop_black, pops$PROP_BLACK[precinct_num])
-    }
+#prop_black = c()
 #data17 <- data17 %>%
 #  mutate(PRECINCT_PROP_BLACK = pops$PROP_BLACK[STOP_LOCATION_PRECINCT])
 ```
+
+```{r}
+data17 <- data17 %>%
+  filter(!STOP_LOCATION_PRECINCT == "#NULL!")
+data17$STOP_LOCATION_PRECINCT  <- as.numeric(data17$STOP_LOCATION_PRECINCT)
+
+#for (precinct_num in data17$STOP_LOCATION_PRECINCT) {
+#  print(precinct_num)
+#  print(pops$PROP_BLACK[precinct_num])
+#}
+vector <- pops$PROP_BLACK[data17$STOP_LOCATION_PRECINCT]
+```
+
 
 ```{r}
 # Create a combined data set

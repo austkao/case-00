@@ -12,12 +12,22 @@ library(tidyverse)
 
 ```{r, echo = FALSE}
 # Data clean up code
-#Load in all data being used, rename certain fields
+# Load in all data being used, rename certain fields
 data17 = read.csv("sqf-2017.csv")
 data18 = read.csv("sqf-2018.csv")
 data19 = read.csv("sqf-2019.csv")
+pop_data = read.csv("precinct_pop.csv")
 data18 <- data18 %>% rename(STOP_FRISK_TIME = Stop.Frisk.Time)
 data19 <- data19 %>% rename(STOP_FRISK_ID = STOP_ID_ANONY)
+pop_data <- pop_data %>% rename(WHITE = white)
+pop_data <- pop_data %>% rename(BLACK = black)
+pop_data <- pop_data %>% rename(OTHER = other)
+pop_data <- pop_data %>% rename(HISPANIC = hisp_latino)
+# Add in proportions of black and Hispanic residents in precincts
+pop_data <- pop_data %>% 
+  mutate(PROP_BLACK = BLACK / total_pop)
+pop_data <- pop_data %>% 
+  mutate(PROP_HISP = HISPANIC / total_pop)
 # Ensure unique IDs before combining
 data18$STOP_FRISK_ID <- data18$STOP_FRISK_ID*100+18
 data19$STOP_FRISK_ID <- data19$STOP_FRISK_ID*100+19
@@ -62,8 +72,15 @@ filtered_1719 <- filtered_1719 %>%
    filter(!SUSPECT_REPORTED_AGE == "(null)")
 filtered_1719$SUSPECT_REPORTED_AGE <- as.numeric(filtered_1719$SUSPECT_REPORTED_AGE)
 filtered_1719$SUSPECT_REPORTED_AGE <- filtered_1719$SUSPECT_REPORTED_AGE - mean(filtered_1719$SUSPECT_REPORTED_AGE)
+filtered_1719 <- filtered_1719 %>%
+  filter(!STOP_LOCATION_PRECINCT == "#NULL!")
+filtered_1719$STOP_LOCATION_PRECINCT  <- as.numeric(filtered_1719$STOP_LOCATION_PRECINCT)
+filtered_1719 <- filtered_1719 %>%
+   mutate(PRECINCT_PROP_BLACK = pop_data$PROP_BLACK[STOP_LOCATION_PRECINCT])
+filtered_1719 <- filtered_1719 %>%
+   mutate(PRECINCT_PROP_HISP = pop_data$PROP_HISP[STOP_LOCATION_PRECINCT])
 # Take a random sample of the data
-set.seed(123456789)
+set.seed(123)
 sampled_ids <- sample(filtered_1719$STOP_FRISK_ID, size=3000, replace=F)
 sqf_sample <- filtered_1719 %>%
   filter(STOP_FRISK_ID %in% sampled_ids)
@@ -97,13 +114,15 @@ To allow for meaningful interpretation of the intercept, we centered the variabl
 
 We proceeded to take a simple random sample of 3000 observations out of the remaining 32539 observations to serve as the basis for our model. This also satisfies our model assumption that the data is random.
 
+To address concerns about the independence of the predictor variables, particularly with how race can be affected by where the suspect is stopped, we calculated the proportion of Black residents and the proportion of Hispanic residents in each precinct, based on the 2020 precinct population data. We then added that information in the form of the variables "PRECINCT_PROP_BLACK" and "PRECINCT_PROP_HISP". By adding these variables to our model, we hope to help account for the relationship between location and race in our model.
+
 # Results
 
 Based off the predictor variables we chose, we generated a model for the log odds that a suspect will be stopped by the police for a violent crime.
 
 ```{r, echo = FALSE}
 # Create model, generate output
-violence_model <- glm(SUSPECTED_VIOLENCE ~ RACE + SUSPECT_HEIGHT + SUSPECT_REPORTED_AGE + SUSPECT_SEX + STOP_WAS_INITIATED, data = sqf_sample, family = binomial)
+violence_model <- glm(SUSPECTED_VIOLENCE ~ RACE + SUSPECT_HEIGHT + SUSPECT_REPORTED_AGE + SUSPECT_SEX + STOP_WAS_INITIATED + PRECINCT_PROP_BLACK + PRECINCT_PROP_HISP, data = sqf_sample, family = binomial)
 tidy(violence_model)
 ```
 
@@ -123,6 +142,13 @@ geom_abline(intercept = 0) +
 labs(x = "False Positive Rate (1 - Specificity)",
 y = "True Positive Rate (Sensitivity)") )
 threshold <- 0.3
+```
+```{r}
+violence_model_aug %>%
+  mutate(violence_predict = if_else(.fitted > threshold, "Yes", "No"))
+  group_by(SUSPECTED_VIOLENCE, violence_predict) %>%
+    summarise(n = n()) %>%
+      kable(format="markdown")
 ```
 
 
@@ -144,6 +170,8 @@ filtered_1719 <- filtered_1719 %>%
  filter(!SUSPECT_WEIGHT == 0 & !SUSPECT_WEIGHT == 1)
 filtered_1719 <- filtered_1719 %>%
  filter(!SUSPECT_BODY_BUILD_TYPE == "(null)" & !SUSPECT_BODY_BUILD_TYPE == "(nu")
+filtered_1719 <- filtered_1719 %>%
+  mutate(SUSPECTED_VIOLENCE_CHAR = if_else(SUSPECTED_CRIME_DESCRIPTION == "ROBBERY" | SUSPECTED_CRIME_DESCRIPTION == "ASSAULT" | SUSPECTED_CRIME_DESCRIPTION == "RAPE" | SUSPECTED_CRIME_DESCRIPTION == "MURDER" | SUSPECTED_CRIME_DESCRIPTION == "TERRORISM" | SUSPECTED_CRIME_DESCRIPTION == "FORCIBLE TOUCHING" | SUSPECTED_CRIME_DESCRIPTION == "RECKLESS ENDANGERMENT" | SUSPECTED_CRIME_DESCRIPTION == "MENACING", "1", "0"))
 ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_HEIGHT)) +
  geom_boxplot() +
  labs(x = "Suspected Violence in Crime", y = "Height", title = "Height of Suspect in Violent/Nonviolent Crime")
@@ -153,6 +181,16 @@ ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLE
 ggplot(data = filtered_1719, aes(group = SUSPECTED_VIOLENCE, x = SUSPECTED_VIOLENCE, y = SUSPECT_REPORTED_AGE)) +
  geom_boxplot() +
  labs(x = "Suspected Violence in Crime", y = "Age", title = "Age of Suspect in Violent/Nonviolent Crime")
+ggplot(data = filtered_1719, aes(x = PRECINCT_PROP_BLACK, color = SUSPECTED_VIOLENCE_CHAR)) +
+  geom_histogram(binwidth = 0.1) +
+  labs(x = "Proportion of Black Residents", y = "Frequency", title = "Number of SQF Events by the Proportion
+       of Black Residents in the Precinct", color="Suspected Violent Crime")
+ggplot(data = filtered_1719, aes(x = PRECINCT_PROP_HISP, color = SUSPECTED_VIOLENCE_CHAR)) +
+  geom_histogram(binwidth = 0.1) +
+  labs(x = "Proportion of Hispanic Residents", y = "Frequency", title = "Number of SQF Events by the Proportion
+       of Hispanic Residents in the Precinct", color="Suspected Violent Crime")
+filtered_1719$SUSPECT_SEX <- fct_relevel(filtered_1719$SUSPECT_SEX, "UNSPECIFIED", "MALE",
+                                         "FEMALE")
 mosaicplot(filtered_1719$SUSPECT_SEX ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719,
            xlab = "Sex", ylab = "Suspected Violent Crime", main = "Ratio of Violent and Nonviolent Crime by Sex")
 mosaicplot(filtered_1719$STOP_WAS_INITIATED ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719,
