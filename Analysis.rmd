@@ -92,7 +92,7 @@ The New York City police department has a Stop-Question-Frisk (SQF) policy where
 
 The data used for this case study comes directly from the NYPD Stop, Question, and Frisk database from the years of 2017 to 2019. Officers who conduct an SQF event are supposed to complete a form recording details about the event. These forms are then entered into the electronic database, which the NYPD releases annually. We also use NYC police precinct data adapted from data compiled by John Keefe, an editor for the New York Times. To determine what justification police officers are providing for executing an SQF event, we used the "SUSPECTED_CRIME_DESCRIPTION" field in the Stop, Question, and Frisk database, which lists the exact crime being investigated. We then classified the listed crimes into violent and nonviolent categories for a new variable called "SUSPECTED_VIOLENCE", which will act as our response variable. "SUSPECTED_VIOLENCE" has a value of 1 if the suspected crime is violent in nature, and 0 if the suspected crime is nonviolent.
 
-Because we are examining why police officers decide to conduct an SQF event, we want to consider any potential details officers will have access to or will have considered before commencing a stop, which are details like height, age, sex, body build type, age, sex, and how the stop was initiated. We will also consider race as a factor and compare its influence against these other factors to establish how great an impact race has in these decisions and also to examine what racial disparities exist. After an EDA about how each of these factors affects police suspicion of violent crime, we determined height, age, sex, and how the stop was initiated to be the most significant factors, so we will use these factors in our model.
+Because we are examining why police officers decide to conduct an SQF event, we want to consider any potential details officers will have access to or will have considered before commencing a stop, which are details like height, weight, age, sex, body build type, and how the stop was initiated. We will also consider race as a factor and compare its influence against these other factors to establish how great an impact race has in these decisions and also to examine what racial disparities exist. After an EDA about how each of these factors affects police suspicion of violent crime, we determined that height, age, sex, and how the stop was initiated to be the most significant factors, so we will use these factors in our model. The location of the event can also have an effect, especially since the racial makeup of the city changes by precinct. To account for this fact, we decided to add the proportion of Black and Hispanic residents within the precinct to the model. The variables we have chosen are represented by the fields "SUSPECT_HEIGHT", "SUSPECT_REPORTED_AGE", "SUSPECT_SEX", "STOP_WAS_INITIATED", "PRECINCT_PROP_BLACK", "PRECINCT_PROP_HISP", and "RACE" in the data.
 
 On preliminary examination of the data, it would seem that some racial disparity does exist. When comparing the ratio of stops for suspected violent and nonviolent crimes for each race, black and Hispanic residents are stopped for suspected violent crimes at higher rates than white residents.
 
@@ -107,6 +107,8 @@ Because we are primarily concerned with the race of the suspects at SQF events, 
 To create the "SUSPECTED_VIOLENCE" field, which has a value of 1 if the suspected crime is violent in nature, and 0 if nonviolent, we used the data in "SUSPECTED_CRIME_DESCRIPTION". The crimes we decided were violent are assault, menacing, forcible touching, murder, rape, terrorism, reckless endangerment, and robbery, while all other crimes were classified as nonviolent.
 
 We also removed an additional 3130 observations due to missing or impossible data. If a suspect was missing height or age data, that data point was removed. There were also data points removed that were missing the "STOP_WAS_INITIATED" field. There were also impossible data points, such as a suspect who was recorded as being 60.11 feet tall. This data point was also removed since it is unclear if the officer was using inches or added an extra zero.
+
+To fix some issues with the "SUSPECT_RACE_DESCRIPTION" field, we created a new field called "RACE" where we simplified the names being used and combined several categories that were deemed identical. We combined the "AMER IND", "AMERICAN INDIAN/ALASKAN NATIVE", and "AMERICAN INDIAN/ALASKAN N" values into "AMER IND", and combined "ASIAN/PACIFIC ISLANDER" and "ASIAN/PAC.ISL" values into "ASIAN/PAC.ISL".
 
 In regards to the sex of the suspect, there were some null values present in the data. We decided to label these values as "UNSPECIFIED" since the suspect could have any gender, including non-binary genders that the data cannot capture.
 
@@ -126,7 +128,7 @@ violence_model <- glm(SUSPECTED_VIOLENCE ~ RACE + SUSPECT_HEIGHT + SUSPECT_REPOR
 tidy(violence_model)
 ```
 
-The model has the form $\text{log}\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 x_0+\beta_2 x_1+ \beta_3 x_2+ \beta_4 x_3 + \beta_5 x_4+\beta_6 x_5+ \beta_7 x_6+ \beta_8 x_7 + \beta_9 x_8+\beta_{10} x_9+ \beta_{11} x_{10}$, where $\beta_0$ is the intercept, $\beta_1$ through $\beta_{11}$ are the coefficients for the model parameters, and $x_1$ through $x_{10}$ are different model parameters.
+The model has the form $\text{log}\left(\frac{p}{1-p}\right) = \beta_0 + \beta_1 x_1+ \beta_2 x_2+ \beta_3 x_3+ \beta_4 x_4 + \beta_5 x_5+\beta_6 x_6+ \beta_7 x_7 + \beta_8 x_8 + \beta_9 x_9 + \beta_{10} x_{10} + \beta_{11} x_{11} + \beta_{12} x_{12} + \beta_{13} x_{13}$, where $\beta_0$ is the intercept, $x_1$ is an indicator of whether or not the suspect is Asian/ Pacific Islander, $x_2$ is an indicator of whether or not the suspect is a white Hispanic, $x_3$ is an indicator of whether or not the suspect is a Black Hispanic, $x_4$ is an indicator of whether or not the suspect is Black, $x_5$ is an indicator of whether or not the suspect is an American Indian/ Alaskan Native, $x_6$ is the suspect's height from the mean, $x_7$ is the suspect's reported age from the age, $x_8$ is an indicator of whether or not the suspect is female, $x_9$ is an indicator of whether or not the suspect has an unspecified gender, $x_{10}$ is an indicator of whether or not the police commenced the stop based off of someone else's call over the radio, $x_{11}$ is an indicator of whether or not the police commenced the stop based off of a cooperating witness at the scene, $x_{12}$ is the proportion of Black residents in the precinct, and $x_{13}$ is the proportion of Hispanic residents in the precinct, and $\beta_1$ through $\beta_{13}$ are the corresponding coefficients.
 
 ```{r, echo = FALSE}
 # Augment model
@@ -143,24 +145,19 @@ labs(x = "False Positive Rate (1 - Specificity)",
 y = "True Positive Rate (Sensitivity)") )
 threshold <- 0.3
 ```
-```{r}
-violence_model_aug %>%
-  mutate(violence_predict = if_else(.fitted > threshold, "Yes", "No"))
-  group_by(SUSPECTED_VIOLENCE, violence_predict) %>%
-    summarise(n = n()) %>%
-      kable(format="markdown")
-```
+
+
 
 
 # Discussion
 
-From these results, we can see how race has a significant impact on police decisions. For our baseline, we used a white male with mean height and age who was stopped based on the officer's own initiative. The log odds of police suspicion of a violent crime increase by 7.26 for a white Hispanic than for a white person. This means that the police consistently use race to make them suspicious enough for an SQF event.
+From these results, we can see how race can have a significant impact on police decisions. In general, it is the most significant factor behind why an officer will suspect a violent crime, outside of how the officer decides to initiate the stop. For a white male with mean height and age who was stopped based on the officer's own initiative in a precinct with no Black or Hispanic residents, the odds that the officer will suspect him of a violent crime is $e^{-2.38056024}$. The odds of police suspicion of a violent crime are multiplied by a factor of $e^{0.36663303}$ for a Black resident than for a white resident. However, it is worth noting that the odds of police suspicion of a violent crime are multiplied by a factor of $e^{1.56279470}$ when the officer is called in than when the officer self initiates the stop, and the odds of police suspicion of a violent crime are multiplied by a factor of $e^{1.76761269}$ when the officer has a cooperative witness on the scene than when the officer self initiates the stop.
 
 # Appendix
 
 Note: To reproduce all the results in this case study, simply knit the Analysis.rmd document.
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
 # Bivariate EDA for any predictor variables being considered
 # Filter data for missing values
 filtered_1719 <- filtered_1719 %>%
@@ -193,9 +190,16 @@ filtered_1719$SUSPECT_SEX <- fct_relevel(filtered_1719$SUSPECT_SEX, "UNSPECIFIED
                                          "FEMALE")
 mosaicplot(filtered_1719$SUSPECT_SEX ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719,
            xlab = "Sex", ylab = "Suspected Violent Crime", main = "Ratio of Violent and Nonviolent Crime by Sex")
+```
+
+```{r, echo = FALSE}
 mosaicplot(filtered_1719$STOP_WAS_INITIATED ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719,
            xlab = "How Stop was Initiated", ylab = "Suspected Violent Crime", main = "Ratio of Violent and
            Nonviolent Crime by How Stop was Initiated")
+```
+
+
+```{r, echo = FALSE}
 mosaicplot(filtered_1719$SUSPECT_BODY_BUILD_TYPE ~ filtered_1719$SUSPECTED_VIOLENCE, data = filtered_1719, xlab = "Body Build Type", ylab = "Suspected Violent Crime", main = "Ratio of Violent and Nonviolent Crime by Body Build Type")
 ```
 
@@ -205,10 +209,25 @@ arm::binnedplot(x = violence_model_aug$.fitted, y = violence_model_aug$.resid,
                 xlab = "Predicted Probabilites",
                 main = "Binned Residuals vs. Probabilities",
                 col.int = FALSE)
+arm::binnedplot(x = violence_model_aug$SUSPECT_HEIGHT, y = violence_model_aug$.resid,
+                xlab = "Height",
+                main = "Binned Residuals vs. Height",
+                col.int = FALSE)
+arm::binnedplot(x = violence_model_aug$SUSPECT_REPORTED_AGE, y = violence_model_aug$.resid,
+                xlab = "Age",
+                main = "Binned Residuals vs. Age",
+                col.int = FALSE)
+arm::binnedplot(x = violence_model_aug$PRECINCT_PROP_BLACK, y = violence_model_aug$.resid,
+                xlab = "Proportion of Black Residents",
+                main = "Binned Residuals vs. Proportion of Black Residents",
+                col.int = FALSE)
+arm::binnedplot(x = violence_model_aug$PRECINCT_PROP_HISP, y = violence_model_aug$.resid,
+                xlab = "Proportion of Hispanic Residents",
+                main = "Binned Residuals vs. Proportion of Hispanic Residents",
+                col.int = FALSE)
 ```
 
-b
 
-Bibliography
+## Bibliography
 
-https://www.nyclu.org/en/stop-and-frisk-data
+"Stop-and-Frisk Data". *New York Civil Liberties Union*, https://www.nyclu.org/en/stop-and-frisk-data.

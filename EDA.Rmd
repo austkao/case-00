@@ -173,4 +173,15 @@ arrest_model <- glm(SUSPECTED_VIOLENCE ~ RACE + WEAPON_FOUND + SUSPECT_BODY_BUIL
 tidy(arrest_model)
 ```
 
+```{r, echo = FALSE}
+violence_model_aug %>%
+  mutate(violence_predict = if_else(.fitted > threshold, "Yes", "No"))
+  group_by(SUSPECTED_VIOLENCE, violence_predict) %>%
+    summarise(n = n()) %>%
+      kable(format="markdown")
+```
 
+```{r}
+leverage_threshold <- 2*(7+1)/nrow(violence_model_aug)
+violence_model_aug %>% filter(.hat > leverage_threshold)
+```
