@@ -106,7 +106,7 @@ Because we are primarily concerned with the race of the suspects at SQF events, 
 
 To create the "SUSPECTED_VIOLENCE" field, which has a value of 1 if the suspected crime is violent in nature, and 0 if nonviolent, we used the data in "SUSPECTED_CRIME_DESCRIPTION". The crimes we decided were violent are assault, menacing, forcible touching, murder, rape, terrorism, reckless endangerment, and robbery, while all other crimes were classified as nonviolent.
 
-We also removed an additional 3130 observations due to missing or impossible data. If a suspect was missing height or age data, that data point was removed. There were also data points removed that were missing the "STOP_WAS_INITIATED" field. There were also impossible data points, such as a suspect who was recorded as being 60.11 feet tall. This data point was also removed since it is unclear if the officer was using inches or added an extra zero.
+We also removed an additional 3503 observations due to missing or impossible data. If a suspect was missing height or age data, that data point was removed. There were also data points removed that were missing the "STOP_WAS_INITIATED" field. There were also impossible data points, such as a suspect who was recorded as being 60.11 feet tall. This data point was also removed since it is unclear if the officer was using inches or added an extra zero.
 
 To fix some issues with the "SUSPECT_RACE_DESCRIPTION" field, we created a new field called "RACE" where we simplified the names being used and combined several categories that were deemed identical. We combined the "AMER IND", "AMERICAN INDIAN/ALASKAN NATIVE", and "AMERICAN INDIAN/ALASKAN N" values into "AMER IND", and combined "ASIAN/PACIFIC ISLANDER" and "ASIAN/PAC.ISL" values into "ASIAN/PAC.ISL".
 
